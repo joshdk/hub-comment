@@ -11,9 +11,19 @@ import (
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
+	"github.com/joshdk/hub-comment/hub"
 )
 
-const tokenEnvVar = "GITHUB_TOKEN"
+const (
+	// githubTokenEnvVar is the name of the environment variable which holds
+	// the token used for authenticating against the GitHub API.
+	githubTokenEnvVar = "GITHUB_TOKEN"
+
+	// pullRequestLinkEnvVar is the name of the environment variable which
+	// holds a link to the current pull request. Injected automatically by
+	// CircleCI.
+	pullRequestLinkEnvVar = "CIRCLE_PULL_REQUEST"
+)
 
 var version = "development"
 
@@ -25,9 +35,19 @@ func main() {
 }
 
 func mainCmd() error {
-	token, found := os.LookupEnv(tokenEnvVar)
+	token, found := os.LookupEnv(githubTokenEnvVar)
 	if !found {
 		return fmt.Errorf("no GITHUB_TOKEN set in environment")
+	}
+
+	reference, found := os.LookupEnv(pullRequestLinkEnvVar)
+	if !found {
+		return fmt.Errorf("no CIRCLE_PULL_REQUEST set in environment")
+	}
+
+	owner, repo, number, found := hub.SplitPullRequestReference(reference)
+	if !found {
+		return fmt.Errorf("malformed pull request link")
 	}
 
 	var (
@@ -42,6 +62,7 @@ func mainCmd() error {
 	}
 
 	fmt.Printf("User is %s (%s)\n", self.GetName(), self.GetLogin())
+	fmt.Printf("Pull is %s/%s #%d\n", owner, repo, number)
 
 	return nil
 }
