@@ -54,6 +54,12 @@ func mainCmd() error {
 		return fmt.Errorf("malformed pull request link")
 	}
 
+	if len(os.Args) != 2 {
+		return fmt.Errorf("no comment given")
+	}
+
+	text := os.Args[1]
+
 	var (
 		ctx    = context.Background()
 		client = makeClient(ctx, token)
@@ -79,11 +85,11 @@ func mainCmd() error {
 	fmt.Printf("Pull is %s/%s #%d\n", owner, repo, number)
 	if found {
 		fmt.Printf("Latest PR comment is %d, updating.\n", commentID)
-		return hub.UpdateComment(ctx, client, owner, repo, commentID, "Updated comment posted from CI.")
+		return hub.UpdateComment(ctx, client, owner, repo, commentID, text)
 	}
 
 	fmt.Println("No PR comments, posting.")
-	return hub.PostComment(ctx, client, owner, repo, number, "Original comment posted from CI.")
+	return hub.PostComment(ctx, client, owner, repo, number, text)
 }
 
 // makeClient builds a GitHub client that is authenticated with the given token.
