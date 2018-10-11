@@ -10,8 +10,8 @@ import (
 	"os"
 
 	"github.com/google/go-github/github"
-	"golang.org/x/oauth2"
 	"github.com/joshdk/hub-comment/hub"
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -45,7 +45,7 @@ func mainCmd() error {
 	// branches, or if a build is started before a pr is opened.
 	reference, found := os.LookupEnv(pullRequestLinkEnvVar)
 	if !found {
-		fmt.Fprintln(os.Stderr,"hub-comment: no CIRCLE_PULL_REQUEST set in environment")
+		fmt.Fprintln(os.Stderr, "hub-comment: no CIRCLE_PULL_REQUEST set in environment")
 		return nil
 	}
 
@@ -65,8 +65,23 @@ func mainCmd() error {
 		return err
 	}
 
+	// Get a list of all comments for the given PR number
+	comments, err := hub.GetComments(ctx, client, owner, repo, number)
+	if err != nil {
+		return err
+	}
+
+	// Select the most recent comment that was authored by the current user, if
+	// one exists.
+	commentID, found := hub.FilterComments(comments, self.GetLogin())
+
 	fmt.Printf("User is %s (%s)\n", self.GetName(), self.GetLogin())
 	fmt.Printf("Pull is %s/%s #%d\n", owner, repo, number)
+	if found {
+		fmt.Printf("Latest PR comment is %d\n", commentID)
+	} else {
+		fmt.Println("No PR comments")
+	}
 
 	return nil
 }
