@@ -78,12 +78,12 @@ func mainCmd() error {
 	fmt.Printf("User is %s (%s)\n", self.GetName(), self.GetLogin())
 	fmt.Printf("Pull is %s/%s #%d\n", owner, repo, number)
 	if found {
-		fmt.Printf("Latest PR comment is %d\n", commentID)
-	} else {
-		fmt.Println("No PR comments")
+		fmt.Printf("Latest PR comment is %d, updating.\n", commentID)
+		return hub.UpdateComment(ctx, client, owner, repo, commentID, "Updated comment posted from CI.")
 	}
 
-	return nil
+	fmt.Println("No PR comments, posting.")
+	return hub.PostComment(ctx, client, owner, repo, number, "Original comment posted from CI.")
 }
 
 // makeClient builds a GitHub client that is authenticated with the given token.
