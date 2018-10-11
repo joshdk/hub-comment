@@ -51,7 +51,9 @@ jobs:
     - run:
         name: Run integration tests
         working_directory: artifacts
-        command: ./hub-comment_linux_amd64
+        command: |
+          ./hub-comment_linux_amd64
+          ./hub-comment_linux_amd64
 
   release:
     docker:

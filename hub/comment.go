@@ -46,3 +46,21 @@ func FilterComments(comments []*github.IssueComment, name string) (int64, bool) 
 	}
 	return 0, false
 }
+
+// PostComment creates a new comment on the given PR.
+func PostComment(ctx context.Context, client *github.Client, owner string, repo string, number int, comment string) error {
+	ic := &github.IssueComment{
+		Body: github.String(comment),
+	}
+	_, _, err := client.Issues.CreateComment(ctx, owner, repo, number, ic)
+	return err
+}
+
+// UpdateComment modifies an existing comment.
+func UpdateComment(ctx context.Context, client *github.Client, owner string, repo string, commentID int64, comment string) error {
+	ic := &github.IssueComment{
+		Body: github.String(comment),
+	}
+	_, _, err := client.Issues.EditComment(ctx, owner, repo, commentID, ic)
+	return err
+}
