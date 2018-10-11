@@ -35,22 +35,22 @@ func main() {
 }
 
 func mainCmd() error {
-	token, found := os.LookupEnv(githubTokenEnvVar)
-	if !found {
+	token, commentExists := os.LookupEnv(githubTokenEnvVar)
+	if !commentExists {
 		return fmt.Errorf("no GITHUB_TOKEN set in environment")
 	}
 
 	// If no CIRCLE_PULL_REQUEST is set, print an error and return immediately
 	// but do not fail. This environment variable will not be set on non-pr
 	// branches, or if a build is started before a pr is opened.
-	reference, found := os.LookupEnv(pullRequestLinkEnvVar)
-	if !found {
+	reference, commentExists := os.LookupEnv(pullRequestLinkEnvVar)
+	if !commentExists {
 		fmt.Fprintln(os.Stderr, "hub-comment: no CIRCLE_PULL_REQUEST set in environment")
 		return nil
 	}
 
-	owner, repo, number, found := hub.SplitPullRequestReference(reference)
-	if !found {
+	owner, repo, number, commentExists := hub.SplitPullRequestReference(reference)
+	if !commentExists {
 		return fmt.Errorf("malformed pull request link")
 	}
 
@@ -79,17 +79,25 @@ func mainCmd() error {
 
 	// Select the most recent comment that was authored by the current user, if
 	// one exists.
-	commentID, found := hub.FilterComments(comments, self.GetLogin())
+	commentID, commentExists := hub.FilterComments(comments, self.GetLogin())
 
 	fmt.Printf("User is %s (%s)\n", self.GetName(), self.GetLogin())
 	fmt.Printf("Pull is %s/%s #%d\n", owner, repo, number)
-	if found {
+
+	var url string
+	if commentExists {
 		fmt.Printf("Latest PR comment is %d, updating.\n", commentID)
-		return hub.UpdateComment(ctx, client, owner, repo, commentID, text)
+		url, err = hub.UpdateComment(ctx, client, owner, repo, commentID, text)
+	} else {
+		fmt.Println("No PR comments, posting.")
+		url, err = hub.PostComment(ctx, client, owner, repo, number, text)
+	}
+	if err != nil {
+		return err
 	}
 
-	fmt.Println("No PR comments, posting.")
-	return hub.PostComment(ctx, client, owner, repo, number, text)
+	fmt.Printf("Link is %s\n", url)
+	return nil
 }
 
 // makeClient builds a GitHub client that is authenticated with the given token.
