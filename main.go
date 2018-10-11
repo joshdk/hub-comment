@@ -40,9 +40,13 @@ func mainCmd() error {
 		return fmt.Errorf("no GITHUB_TOKEN set in environment")
 	}
 
+	// If no CIRCLE_PULL_REQUEST is set, print an error and return immediately
+	// but do not fail. This environment variable will not be set on non-pr
+	// branches, or if a build is started before a pr is opened.
 	reference, found := os.LookupEnv(pullRequestLinkEnvVar)
 	if !found {
-		return fmt.Errorf("no CIRCLE_PULL_REQUEST set in environment")
+		fmt.Fprintln(os.Stderr,"hub-comment: no CIRCLE_PULL_REQUEST set in environment")
+		return nil
 	}
 
 	owner, repo, number, found := hub.SplitPullRequestReference(reference)
