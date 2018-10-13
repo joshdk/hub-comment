@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 
@@ -25,6 +26,7 @@ const (
 	pullRequestLinkEnvVar = "CIRCLE_PULL_REQUEST"
 )
 
+// version can be replaced at build time with a custom version string.
 var version = "development"
 
 func main() {
@@ -35,6 +37,27 @@ func main() {
 }
 
 func mainCmd() error {
+	var (
+		// versionFlag is a command line flag ("-version") that will have the
+		// program to print a version string and then exit.
+		versionFlag = flag.Bool("version", false, fmt.Sprintf(`Print the version "%s" and exit.`, version))
+
+		// templateFlag is a command line flag ("-template") that holds a
+		// string literal used as the posted comment body.
+		templateFlag = flag.String("template", "", "Comment body to post.")
+	)
+
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of hub-comment:\n")
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println(version)
+		return nil
+	}
+
 	token, commentExists := os.LookupEnv(githubTokenEnvVar)
 	if !commentExists {
 		return fmt.Errorf("no GITHUB_TOKEN set in environment")
@@ -54,15 +77,14 @@ func mainCmd() error {
 		return fmt.Errorf("malformed pull request link")
 	}
 
-	if len(os.Args) != 2 {
+	if *templateFlag == "" {
 		return fmt.Errorf("no comment given")
 	}
-
-	text := os.Args[1]
 
 	var (
 		ctx    = context.Background()
 		client = makeClient(ctx, token)
+		text   = *templateFlag
 	)
 
 	// Get the current user associated with the given API token.

@@ -52,8 +52,9 @@ jobs:
         name: Run integration tests
         working_directory: artifacts
         command: |
-          ./hub-comment_linux_amd64 "Original comment posted from CI."
-          ./hub-comment_linux_amd64 "Updated comment posted from CI."
+          ./hub-comment_linux_amd64 -version
+          ./hub-comment_linux_amd64 -template "Original comment posted from CI."
+          ./hub-comment_linux_amd64 -template "Updated comment posted from CI."
 
   release:
     docker:
