@@ -8,6 +8,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/google/go-github/github"
@@ -45,6 +46,11 @@ func mainCmd() error {
 		// templateFlag is a command line flag ("-template") that holds a
 		// string literal used as the posted comment body.
 		templateFlag = flag.String("template", "", "Comment body to post.")
+
+		// templateFileFlag is a command line flag ("-template-file") that
+		// names a file, the contents of which is used as the posted comment
+		// body.
+		templateFileFlag = flag.String("template-file", "", "File containing comment body to post.")
 	)
 
 	flag.Usage = func() {
@@ -77,15 +83,17 @@ func mainCmd() error {
 		return fmt.Errorf("malformed pull request link")
 	}
 
-	if *templateFlag == "" {
-		return fmt.Errorf("no comment given")
-	}
-
 	var (
 		ctx    = context.Background()
 		client = makeClient(ctx, token)
-		text   = *templateFlag
 	)
+
+	// Get a template from either the -template flag directly, or read from the
+	// -template-file.
+	template, err := getTemplate(*templateFlag, *templateFileFlag)
+	if err != nil {
+		return err
+	}
 
 	// Get the current user associated with the given API token.
 	self, err := getSelf(ctx, client)
@@ -109,10 +117,10 @@ func mainCmd() error {
 	var url string
 	if commentExists {
 		fmt.Printf("Latest PR comment is %d, updating.\n", commentID)
-		url, err = hub.UpdateComment(ctx, client, owner, repo, commentID, text)
+		url, err = hub.UpdateComment(ctx, client, owner, repo, commentID, string(template))
 	} else {
 		fmt.Println("No PR comments, posting.")
-		url, err = hub.PostComment(ctx, client, owner, repo, number, text)
+		url, err = hub.PostComment(ctx, client, owner, repo, number, string(template))
 	}
 	if err != nil {
 		return err
@@ -120,6 +128,21 @@ func mainCmd() error {
 
 	fmt.Printf("Link is %s\n", url)
 	return nil
+}
+
+// getTemplate will either return the contents of template verbatim, or return
+// the contents read from templateFile.
+func getTemplate(template string, templateFile string) ([]byte, error) {
+	switch {
+	case template == "" && templateFile == "":
+		fallthrough
+	case template != "" && templateFile != "":
+		return nil, fmt.Errorf("a template or a template file must be given")
+	case template != "":
+		return []byte(template), nil
+	default:
+		return ioutil.ReadFile(templateFile)
+	}
 }
 
 // makeClient builds a GitHub client that is authenticated with the given token.
