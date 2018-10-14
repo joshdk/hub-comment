@@ -125,24 +125,21 @@ func mainCmd() error {
 	// one exists.
 	commentID, commentExists := hub.FilterComments(comments, self.GetLogin())
 
-	fmt.Printf("User is %s (%s)\n", self.GetName(), self.GetLogin())
-	fmt.Printf("Pull is %s/%s #%d\n", owner, repo, number)
-
+	// Create a new comment or update an existing comment. Save a link to the
+	// resulting comment.
 	var url string
 	if commentExists {
-		fmt.Printf("Latest PR comment is %d, updating.\n", commentID)
-		fmt.Printf("Comment:\n%s\n", comment)
 		url, err = hub.UpdateComment(ctx, client, owner, repo, commentID, comment)
 	} else {
-		fmt.Println("No PR comments, posting.")
 		url, err = hub.PostComment(ctx, client, owner, repo, number, comment)
 	}
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Comment:\n%s\n", comment)
-	fmt.Printf("Link is %s\n", url)
+	// Display a report about the comment that was just posted.
+	hub.Report(comment, url, self.GetName(), self.GetLogin(), owner, repo, number, commentExists)
+
 	return nil
 }
 
