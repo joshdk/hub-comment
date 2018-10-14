@@ -83,17 +83,31 @@ func mainCmd() error {
 		return fmt.Errorf("malformed pull request link")
 	}
 
-	var (
-		ctx    = context.Background()
-		client = makeClient(ctx, token)
-	)
-
 	// Get a template from either the -template flag directly, or read from the
 	// -template-file.
 	template, err := getTemplate(*templateFlag, *templateFileFlag)
 	if err != nil {
 		return err
 	}
+
+	// Parse the template body
+	tpl, err := hub.NewTemplate(template)
+	if err != nil {
+		return err
+	}
+
+	// Build a context object containing the available environment variables.
+	state := hub.NewContext(os.Environ())
+
+	comment, err := hub.Execute(tpl, state)
+	if err != nil {
+		return err
+	}
+
+	var (
+		ctx    = context.Background()
+		client = makeClient(ctx, token)
+	)
 
 	// Get the current user associated with the given API token.
 	self, err := getSelf(ctx, client)
@@ -117,15 +131,17 @@ func mainCmd() error {
 	var url string
 	if commentExists {
 		fmt.Printf("Latest PR comment is %d, updating.\n", commentID)
-		url, err = hub.UpdateComment(ctx, client, owner, repo, commentID, string(template))
+		fmt.Printf("Comment:\n%s\n", comment)
+		url, err = hub.UpdateComment(ctx, client, owner, repo, commentID, comment)
 	} else {
 		fmt.Println("No PR comments, posting.")
-		url, err = hub.PostComment(ctx, client, owner, repo, number, string(template))
+		url, err = hub.PostComment(ctx, client, owner, repo, number, comment)
 	}
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("Comment:\n%s\n", comment)
 	fmt.Printf("Link is %s\n", url)
 	return nil
 }
