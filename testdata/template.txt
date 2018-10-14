@@ -1,1 +1,1 @@
-Updated comment posted from CI.
+Updated comment posted from [build #{{.Env.CIRCLE_BUILD_NUM}}]({{.Env.CIRCLE_BUILD_URL}}) on CircleCI.

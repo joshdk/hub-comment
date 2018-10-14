@@ -54,7 +54,7 @@ jobs:
         working_directory: artifacts
         command: |
           ./hub-comment_linux_amd64 -version
-          ./hub-comment_linux_amd64 -template "Original comment posted from CI."
+          ./hub-comment_linux_amd64 -template 'Original comment posted from [build #{{.Env.CIRCLE_BUILD_NUM}}]({{.Env.CIRCLE_BUILD_URL}}) on CircleCI.'
           ./hub-comment_linux_amd64 -template-file ../testdata/template.txt
 
   release:
