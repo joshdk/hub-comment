@@ -15,6 +15,12 @@ type Context struct {
 
 	// Env is a map of available environment variables.
 	Env map[string]string
+
+	// Git is a map of GitHub specific parameters.
+	Git map[string]string
+
+	// Build is a map of CircleCI specific parameters.
+	Build map[string]string
 }
 
 // makeEnv takes in a list of strings of the form "key=value", and returns a
@@ -31,10 +37,44 @@ func makeEnv(environ []string) map[string]string {
 	return env
 }
 
+// Get is a helper function for looking up the given key in a map. If the key
+// does not exist, fallback is returned, but only if specified.
+func get(env map[string]string, key string, fallback ...string) string {
+	value, found := env[key]
+	switch {
+	case found:
+		return value
+	case !found && len(fallback) > 0:
+		return fallback[0]
+	default:
+		return ""
+	}
+}
+
 // NewContext is a helper for constructing a context object.
 func NewContext(environ []string) Context {
+	env := makeEnv(environ)
 	return Context{
-		Env: makeEnv(environ),
+		Env: env,
+		Git: map[string]string{
+			"Branch": get(env, "CIRCLE_BRANCH"),
+			"PR":     get(env, "CIRCLE_PULL_REQUEST"),
+			"SHA":    get(env, "CIRCLE_SHA1"),
+			"Tag":    get(env, "CIRCLE_TAG"),
+		},
+		Build: map[string]string{
+			"CI":       get(env, "CIRCLECI"),
+			"Index":    get(env, "CIRCLE_NODE_INDEX", "0"),
+			"Job":      get(env, "CIRCLE_JOB"),
+			"Nodes":    get(env, "CIRCLE_NODE_TOTAL", "1"),
+			"Number":   get(env, "CIRCLE_BUILD_NUM"),
+			"Owner":    get(env, "CIRCLE_PROJECT_USERNAME"),
+			"Repo":     get(env, "CIRCLE_PROJECT_REPONAME"),
+			"Stage":    get(env, "CIRCLE_STAGE"),
+			"URL":      get(env, "CIRCLE_BUILD_URL"),
+			"User":     get(env, "CIRCLE_USERNAME"),
+			"Workflow": get(env, "CIRCLE_WORKFLOW_ID"),
+		},
 	}
 }
 

@@ -1,3 +1,5 @@
 This is an updated comment.
 
-Posted from [build #{{.Env.CIRCLE_BUILD_NUM}}]({{.Env.CIRCLE_BUILD_URL}}) on CircleCI.
+Posted from [build #{{.Build.Number}}]({{.Build.URL}}) on CircleCI.
+
+Built on `{{.Git.Branch}}` at `{{.Git.SHA}}`.
