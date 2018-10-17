@@ -1,10 +1,28 @@
 version: 2.1
 jobs:
+  test:
+    docker:
+    - image: circleci/golang:1.11.1
+    working_directory: /go/src/github.com/joshdk/hub-comment
+    steps:
+    - checkout
+    - run:
+        name: Install dependencies
+        working_directory: /tmp
+        command: |
+          go get golang.org/x/tools/cmd/goimports
+    - run:
+        name: Run tests
+        command: |
+          gofiles="$(find . -name '*.go' | grep -v /vendor/)"
+          test -z "$(gofmt -l -s  $gofiles)"
+          test -z "$(goimports -l $gofiles)"
+          go test -race -v ./...
+
   build:
     docker:
     - image: circleci/golang:1.11.1
     working_directory: /go/src/github.com/joshdk/hub-comment
-
     steps:
     - checkout
     - run:
@@ -41,7 +59,7 @@ jobs:
         paths:
         - artifacts
 
-  test:
+  integration:
     docker:
     - image: cibuilds/github:0.12.0
     working_directory: /go/src/github.com/joshdk/hub-comment
@@ -72,8 +90,9 @@ workflows:
   version: 2
   build:
     jobs:
+    - test
     - build
-    - test:
+    - integration:
         requires:
         - build
 
