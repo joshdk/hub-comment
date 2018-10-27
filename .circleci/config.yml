@@ -71,9 +71,12 @@ jobs:
         name: Run integration tests
         working_directory: artifacts
         command: |
+          export GITHUB_TOKEN="$GITHUB_COMMENT_TOKEN"
           ./hub-comment_linux_amd64 -version
           ./hub-comment_linux_amd64 -template 'Original comment posted from [build #{{.Env.CIRCLE_BUILD_NUM}}]({{.Env.CIRCLE_BUILD_URL}}) on CircleCI.'
+          STATUS=ready ./hub-comment_linux_amd64 -template-file ../testdata/status.txt -type status
           ./hub-comment_linux_amd64 -template-file ../testdata/template.txt
+          STATUS=done  ./hub-comment_linux_amd64 -template-file ../testdata/status.txt -type status
 
   release:
     docker:
