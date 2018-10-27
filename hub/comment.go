@@ -6,6 +6,7 @@ package hub
 
 import (
 	"context"
+	"strings"
 
 	"github.com/google/go-github/github"
 )
@@ -21,7 +22,7 @@ func GetComments(ctx context.Context, client *github.Client, owner string, repo 
 
 // FilterComments selects the most recently updated comment, that was authored
 // by the current user, if any exist.
-func FilterComments(comments []*github.IssueComment, name string) (int64, bool) {
+func FilterComments(comments []*github.IssueComment, authorName string, typeName string) (int64, bool) {
 	var best *github.IssueComment
 	for _, comment := range comments {
 		user := comment.GetUser()
@@ -31,8 +32,16 @@ func FilterComments(comments []*github.IssueComment, name string) (int64, bool) 
 
 		// Reject any comment that was not authored by the current user.
 		author := user.GetLogin()
-		if author != name {
+		if author != authorName {
 			continue
+		}
+
+		// Reject if the comment has a meta type, and that type doesn't match.
+		if strings.Contains(comment.GetBody(), metaTypePrefix) {
+			if !strings.Contains(comment.GetBody(), metaTypePrefix+typeName+")") {
+				continue
+			}
+
 		}
 
 		// Keep any comment that has been more recently updated.

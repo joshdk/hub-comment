@@ -51,6 +51,12 @@ func mainCmd() error {
 		// names a file, the contents of which is used as the posted comment
 		// body.
 		templateFileFlag = flag.String("template-file", "", "File containing comment body to post.")
+
+		// typeFlag is a command line flag ("-type") that specifies the type of
+		// comment to post. Comment types are completely arbitrary, but are
+		// used from distinguishing between multiple different kinds of
+		// comments on a single PR.
+		typeFlag = flag.String("type", "default", "Type of comment to post and edit.")
 	)
 
 	flag.Usage = func() {
@@ -97,7 +103,7 @@ func mainCmd() error {
 	}
 
 	// Build a context object containing the available environment variables.
-	state := hub.NewContext(os.Environ())
+	state := hub.NewContext(os.Environ(), *typeFlag)
 
 	comment, err := hub.Execute(tpl, state)
 	if err != nil {
@@ -123,7 +129,7 @@ func mainCmd() error {
 
 	// Select the most recent comment that was authored by the current user, if
 	// one exists.
-	commentID, commentExists := hub.FilterComments(comments, self.GetLogin())
+	commentID, commentExists := hub.FilterComments(comments, self.GetLogin(), *typeFlag)
 
 	// Create a new comment or update an existing comment. Save a link to the
 	// resulting comment.
