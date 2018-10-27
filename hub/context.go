@@ -11,6 +11,15 @@ import (
 	"unicode"
 )
 
+const (
+	// commentHeader is a line of Markdown to prepend to any posted comment.
+	commentHeader = "[//]: # (meta:type={{.Meta.Type}})"
+
+	// metaTypePrefix is the string to search for inside pre-existing comments
+	// to check if they have a declared type.
+	metaTypePrefix = "[//]: # (meta:type="
+)
+
 // Context represents a logical grouping of data for use with comment templates.
 type Context struct {
 
@@ -22,6 +31,10 @@ type Context struct {
 
 	// Build is a map of CircleCI specific parameters.
 	Build map[string]string
+
+	// Meta is a map of parameters specific to the internal operation of
+	// hub-comment.
+	Meta map[string]string
 }
 
 // makeEnv takes in a list of strings of the form "key=value", and returns a
@@ -53,7 +66,7 @@ func get(env map[string]string, key string, fallback ...string) string {
 }
 
 // NewContext is a helper for constructing a context object.
-func NewContext(environ []string) Context {
+func NewContext(environ []string, typeName string) Context {
 	env := makeEnv(environ)
 	return Context{
 		Env: env,
@@ -76,12 +89,16 @@ func NewContext(environ []string) Context {
 			"User":     get(env, "CIRCLE_USERNAME"),
 			"Workflow": get(env, "CIRCLE_WORKFLOW_ID"),
 		},
+		Meta: map[string]string{
+			"Type": typeName,
+		},
 	}
 }
 
 // NewTemplate is a helper for constructing a template object.
 func NewTemplate(body []byte) (*template.Template, error) {
-	return template.New("comment").Parse(trim(string(body)))
+	base := trim(string(body))
+	return template.New("comment").Parse(commentHeader + "\n\n" + base)
 }
 
 // Execute applies the given context to the given template and returns the
