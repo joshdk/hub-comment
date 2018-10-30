@@ -39,24 +39,30 @@ func main() {
 
 func mainCmd() error {
 	var (
-		// versionFlag is a command line flag ("-version") that will have the
-		// program to print a version string and then exit.
-		versionFlag = flag.Bool("version", false, fmt.Sprintf(`Print the version "%s" and exit.`, version))
 
-		// templateFlag is a command line flag ("-template") that holds a
-		// string literal used as the posted comment body.
-		templateFlag = flag.String("template", "", "Comment body to post.")
+		// dryRunFlag is a command line flag ("-dry-run") that forces
+		// hub-comment to stop short, skip posting or updating a comment. All
+		// other API actions are still performed.
+		dryRunFlag = flag.Bool("dry-run", false, "Stop before posting or updating comments.")
 
 		// templateFileFlag is a command line flag ("-template-file") that
 		// names a file, the contents of which is used as the posted comment
 		// body.
 		templateFileFlag = flag.String("template-file", "", "File containing comment body to post.")
 
+		// templateFlag is a command line flag ("-template") that holds a
+		// string literal used as the posted comment body.
+		templateFlag = flag.String("template", "", "Comment body to post.")
+
 		// typeFlag is a command line flag ("-type") that specifies the type of
 		// comment to post. Comment types are completely arbitrary, but are
 		// used from distinguishing between multiple different kinds of
 		// comments on a single PR.
 		typeFlag = flag.String("type", "default", "Type of comment to post and edit.")
+
+		// versionFlag is a command line flag ("-version") that will have the
+		// program to print a version string and then exit.
+		versionFlag = flag.Bool("version", false, fmt.Sprintf(`Print the version "%s" and exit.`, version))
 	)
 
 	flag.Usage = func() {
@@ -134,17 +140,20 @@ func mainCmd() error {
 	// Create a new comment or update an existing comment. Save a link to the
 	// resulting comment.
 	var url string
-	if commentExists {
-		url, err = hub.UpdateComment(ctx, client, owner, repo, commentID, comment)
-	} else {
-		url, err = hub.PostComment(ctx, client, owner, repo, number, comment)
-	}
-	if err != nil {
-		return err
+
+	if !*dryRunFlag {
+		if commentExists {
+			url, err = hub.UpdateComment(ctx, client, owner, repo, commentID, comment)
+		} else {
+			url, err = hub.PostComment(ctx, client, owner, repo, number, comment)
+		}
+		if err != nil {
+			return err
+		}
 	}
 
 	// Display a report about the comment that was just posted.
-	hub.Report(comment, url, self.GetName(), self.GetLogin(), owner, repo, number, commentExists)
+	hub.Report(comment, url, self.GetName(), self.GetLogin(), owner, repo, number, commentExists, *dryRunFlag)
 
 	return nil
 }

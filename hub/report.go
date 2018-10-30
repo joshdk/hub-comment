@@ -7,14 +7,19 @@ import (
 
 // Report display a textual report about the pull request, and comment that was
 // just posted.
-func Report(comment, url, user, login, owner, repo string, number int, updated bool) {
+func Report(comment, url, user, login, owner, repo string, number int, updated bool, dryRun bool) {
 	var (
 		prefix = "Posting new comment as"
 		lines  = strings.Split(comment, "\n")
 	)
 
-	if updated {
+	switch {
+	case updated && dryRun:
+		prefix = "Would have updated existing comment by"
+	case updated:
 		prefix = "Updating existing comment by"
+	case dryRun:
+		prefix = "Would have posted new comment as"
 	}
 
 	fmt.Printf(
@@ -28,8 +33,12 @@ func Report(comment, url, user, login, owner, repo string, number int, updated b
 	for _, line := range lines {
 		fmt.Printf("→ %s\n", line)
 	}
-	fmt.Println()
 
+	if dryRun {
+		return
+	}
+
+	fmt.Println()
 	fmt.Println("To view comment visit:")
 	fmt.Printf("→ %s\n", url)
 }

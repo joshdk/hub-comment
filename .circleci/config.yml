@@ -75,6 +75,7 @@ jobs:
           ./hub-comment_linux_amd64 -version
           ./hub-comment_linux_amd64 -template 'Original comment posted from [build #{{.Env.CIRCLE_BUILD_NUM}}]({{.Env.CIRCLE_BUILD_URL}}) on CircleCI.'
           STATUS=ready ./hub-comment_linux_amd64 -template-file ../testdata/status.txt -type status
+          ./hub-comment_linux_amd64 -template-file ../testdata/template.txt -dry-run
           ./hub-comment_linux_amd64 -template-file ../testdata/template.txt
           STATUS=done  ./hub-comment_linux_amd64 -template-file ../testdata/status.txt -type status
 
