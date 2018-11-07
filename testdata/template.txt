@@ -7,4 +7,4 @@ Posted from [build #{{.Build.Number}}]({{.Build.URL}}) on CircleCI.
 
 Built on `{{.Git.Branch}}` at `{{.Git.SHA}}`.
 
-
+{{if label "enhancement"}}This PR is labeled as an enhancement.{{end}}

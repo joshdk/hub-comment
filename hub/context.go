@@ -22,6 +22,8 @@ const (
 
 // Context represents a logical grouping of data for use with comment templates.
 type Context struct {
+	// Build is a map of CircleCI specific parameters.
+	Build map[string]string
 
 	// Env is a map of available environment variables.
 	Env map[string]string
@@ -29,12 +31,29 @@ type Context struct {
 	// Git is a map of GitHub specific parameters.
 	Git map[string]string
 
-	// Build is a map of CircleCI specific parameters.
-	Build map[string]string
+	// Labels is a list of all labels used in the current PR.
+	Labels []string
 
 	// Meta is a map of parameters specific to the internal operation of
 	// hub-comment.
 	Meta map[string]string
+}
+
+// ContextFuncs represents a logical grouping of text/template functions that
+// need access to the current Context.
+type ContextFuncs struct {
+	// Context is the Context for running functions against.
+	Context *Context
+}
+
+// Label returns true if the underlying Context contains the named label.
+func (ctx *ContextFuncs) Label(name string) bool {
+	for _, label := range ctx.Context.Labels {
+		if label == name {
+			return true
+		}
+	}
+	return false
 }
 
 // makeEnv takes in a list of strings of the form "key=value", and returns a
@@ -66,9 +85,9 @@ func get(env map[string]string, key string, fallback ...string) string {
 }
 
 // NewContext is a helper for constructing a context object.
-func NewContext(environ []string, typeName string) Context {
+func NewContext(environ []string, labels []string, typeName string) *Context {
 	env := makeEnv(environ)
-	return Context{
+	return &Context{
 		Env: env,
 		Git: map[string]string{
 			"Branch": get(env, "CIRCLE_BRANCH"),
@@ -89,6 +108,7 @@ func NewContext(environ []string, typeName string) Context {
 			"User":     get(env, "CIRCLE_USERNAME"),
 			"Workflow": get(env, "CIRCLE_WORKFLOW_ID"),
 		},
+		Labels: labels,
 		Meta: map[string]string{
 			"Type": typeName,
 		},
@@ -96,15 +116,22 @@ func NewContext(environ []string, typeName string) Context {
 }
 
 // NewTemplate is a helper for constructing a template object.
-func NewTemplate(body []byte) (*template.Template, error) {
+func NewTemplate(body []byte) (*template.Template, *ContextFuncs, error) {
 	base := trim(string(body))
-	return template.New("comment").Parse(commentHeader + "\n\n" + base)
+	cf := &ContextFuncs{}
+	tpl, err := template.New("comment").Funcs(
+		template.FuncMap{
+			"label": cf.Label,
+		},
+	).Parse(commentHeader + "\n\n" + base)
+	return tpl, cf, err
 }
 
 // Execute applies the given context to the given template and returns the
 // result as a string.
-func Execute(tpl *template.Template, ctx Context) (string, error) {
+func Execute(tpl *template.Template, ctx *Context, ctxfn *ContextFuncs) (string, error) {
 	var buf bytes.Buffer
+	ctxfn.Context = ctx
 	if err := tpl.Execute(&buf, ctx); err != nil {
 		return "", err
 	}
