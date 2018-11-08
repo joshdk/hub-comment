@@ -39,7 +39,6 @@ func main() {
 
 func mainCmd() error {
 	var (
-
 		// dryRunFlag is a command line flag ("-dry-run") that forces
 		// hub-comment to stop short, skip posting or updating a comment. All
 		// other API actions are still performed.
@@ -103,15 +102,7 @@ func mainCmd() error {
 	}
 
 	// Parse the template body
-	tpl, err := hub.NewTemplate(template)
-	if err != nil {
-		return err
-	}
-
-	// Build a context object containing the available environment variables.
-	state := hub.NewContext(os.Environ(), *typeFlag)
-
-	comment, err := hub.Execute(tpl, state)
+	tpl, cf, err := hub.NewTemplate(template)
 	if err != nil {
 		return err
 	}
@@ -127,6 +118,14 @@ func mainCmd() error {
 		return err
 	}
 
+	// Get a list of all labels for the given PR number.
+	labels, err := hub.GetLabels(ctx, client, owner, repo, number)
+	if err != nil {
+		return err
+	}
+
+	labelSet := hub.OnlyLabelNames(labels)
+
 	// Get a list of all comments for the given PR number
 	comments, err := hub.GetComments(ctx, client, owner, repo, number)
 	if err != nil {
@@ -137,10 +136,17 @@ func mainCmd() error {
 	// one exists.
 	commentID, commentExists := hub.FilterComments(comments, self.GetLogin(), *typeFlag)
 
+	// Build a context object containing the available environment variables.
+	state := hub.NewContext(os.Environ(), labelSet, *typeFlag)
+
+	comment, err := hub.Execute(tpl, state, cf)
+	if err != nil {
+		return err
+	}
+
 	// Create a new comment or update an existing comment. Save a link to the
 	// resulting comment.
 	var url string
-
 	if !*dryRunFlag {
 		if commentExists {
 			url, err = hub.UpdateComment(ctx, client, owner, repo, commentID, comment)
