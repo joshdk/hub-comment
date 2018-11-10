@@ -20,6 +20,27 @@ const (
 	metaTypePrefix = "[//]: # (meta:type="
 )
 
+var (
+	// censoredEnv is a list of common environment variables to censor with
+	// stars. These variables usually contain sensitive contents, and it would
+	// be detrimental if they were leaked into a comment.
+	sensitiveEnvVars = []string{
+		"AWS_ACCESS_KEY_ID",
+		"AWS_SECRET_ACCESS_KEY",
+		"AWS_SESSION_TOKEN",
+		"CIRCLE_TOKEN",
+		"DOCKER_PASS",
+		"DOCKER_PASSWORD",
+		"DOCKER_USER",
+		"DOCKER_USERNAME",
+		"GCLOUD_KEYFILE_JSON",
+		"GITHUB_TOKEN",
+		"GOOGLE_APPLICATION_CREDENTIALS",
+		"GOOGLE_CLOUD_KEYFILE_JSON",
+		"GOOGLE_CREDENTIALS",
+	}
+)
+
 // Context represents a logical grouping of data for use with comment templates.
 type Context struct {
 	// Build is a map of CircleCI specific parameters.
@@ -87,6 +108,7 @@ func get(env map[string]string, key string, fallback ...string) string {
 // NewContext is a helper for constructing a context object.
 func NewContext(environ []string, labels []string, typeName string) *Context {
 	env := makeEnv(environ)
+	censorEnvVars(env)
 	return &Context{
 		Build: map[string]string{
 			"CI":       get(env, "CIRCLECI"),
@@ -136,6 +158,16 @@ func Execute(tpl *template.Template, ctx *Context, ctxfn *ContextFuncs) (string,
 		return "", err
 	}
 	return trim(buf.String()), nil
+}
+
+// censorEnvVars modifies the given env, and replaces sensitive environment
+// variables with stars.
+func censorEnvVars(env map[string]string) {
+	for _, entry := range sensitiveEnvVars {
+		if _, found := env[entry]; found {
+			env[entry] = "********"
+		}
+	}
 }
 
 // trim returns the given input string, with all trailing whitespace characters
