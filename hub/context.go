@@ -88,13 +88,6 @@ func get(env map[string]string, key string, fallback ...string) string {
 func NewContext(environ []string, labels []string, typeName string) *Context {
 	env := makeEnv(environ)
 	return &Context{
-		Env: env,
-		Git: map[string]string{
-			"Branch": get(env, "CIRCLE_BRANCH"),
-			"PR":     get(env, "CIRCLE_PULL_REQUEST"),
-			"SHA":    get(env, "CIRCLE_SHA1"),
-			"Tag":    get(env, "CIRCLE_TAG"),
-		},
 		Build: map[string]string{
 			"CI":       get(env, "CIRCLECI"),
 			"Index":    get(env, "CIRCLE_NODE_INDEX", "0"),
@@ -107,6 +100,13 @@ func NewContext(environ []string, labels []string, typeName string) *Context {
 			"URL":      get(env, "CIRCLE_BUILD_URL"),
 			"User":     get(env, "CIRCLE_USERNAME"),
 			"Workflow": get(env, "CIRCLE_WORKFLOW_ID"),
+		},
+		Env: env,
+		Git: map[string]string{
+			"Branch": get(env, "CIRCLE_BRANCH"),
+			"PR":     get(env, "CIRCLE_PULL_REQUEST"),
+			"SHA":    get(env, "CIRCLE_SHA1"),
+			"Tag":    get(env, "CIRCLE_TAG"),
 		},
 		Labels: labels,
 		Meta: map[string]string{
