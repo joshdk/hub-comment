@@ -11,9 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/google/go-github/github"
 	"github.com/joshdk/hub-comment/hub"
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -109,21 +107,22 @@ func mainCmd() error {
 
 	var (
 		ctx    = context.Background()
-		client = makeClient(ctx, token)
+		client = hub.NewClient(ctx, token)
 	)
 
 	// Get the current user associated with the given API token.
-	self, err := getSelf(ctx, client)
+	self, err := hub.GetSelf(ctx, client)
 	if err != nil {
 		return err
 	}
 
 	// Get a list of all labels for the given PR number.
-	labels, err := hub.GetLabels(ctx, client, owner, repo, number)
+	labels, err := hub.GetIssue(ctx, client, owner, repo, number)
 	if err != nil {
 		return err
 	}
 
+	// Simplify labels to a sorted list of strings.
 	labelSet := hub.OnlyLabelNames(labels)
 
 	// Get a list of all comments for the given PR number
@@ -177,22 +176,4 @@ func getTemplate(template string, templateFile string) ([]byte, error) {
 	default:
 		return ioutil.ReadFile(templateFile)
 	}
-}
-
-// makeClient builds a GitHub client that is authenticated with the given token.
-func makeClient(ctx context.Context, token string) *github.Client {
-	var (
-		tokenSource = oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: token},
-		)
-		httpClient = oauth2.NewClient(ctx, tokenSource)
-	)
-	return github.NewClient(httpClient)
-}
-
-// getSelf retrieves the current authenticated user.
-func getSelf(ctx context.Context, client *github.Client) (*github.User, error) {
-	// A literal user value of "" retrieves the current user.
-	user, _, err := client.Users.Get(ctx, "")
-	return user, err
 }

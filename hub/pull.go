@@ -5,8 +5,12 @@
 package hub
 
 import (
+	"context"
 	"regexp"
+	"sort"
 	"strconv"
+
+	"github.com/google/go-github/github"
 )
 
 var (
@@ -33,4 +37,25 @@ func SplitPullRequestReference(reference string) (string, string, int, bool) {
 	)
 
 	return owner, repo, number, true
+}
+
+// GetIssue fetches information about the current pull request.
+func GetIssue(ctx context.Context, client *github.Client, owner string, repo string, number int) ([]github.Label, error) {
+	issue, _, err := client.Issues.Get(ctx, owner, repo, number)
+	if err != nil {
+		return nil, err
+	}
+
+	return issue.Labels, nil
+}
+
+// OnlyLabelNames simplifies a list of GitHub labels into a list a strings,
+// which is then sorted alphabetically.
+func OnlyLabelNames(labels []github.Label) []string {
+	list := make([]string, len(labels))
+	for index, label := range labels {
+		list[index] = label.GetName()
+	}
+	sort.Strings(list)
+	return list
 }
