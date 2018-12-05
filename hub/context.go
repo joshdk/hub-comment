@@ -6,9 +6,12 @@ package hub
 
 import (
 	"bytes"
+	"strconv"
 	"strings"
 	"text/template"
 	"unicode"
+
+	"github.com/google/go-github/github"
 )
 
 const (
@@ -37,6 +40,9 @@ type Context struct {
 	// Meta is a map of parameters specific to the internal operation of
 	// hub-comment.
 	Meta map[string]string
+
+	// Pull is a map of parameters specific to the current PR.
+	Pull map[string]string
 }
 
 // ContextFuncs represents a logical grouping of text/template functions that
@@ -85,8 +91,12 @@ func get(env map[string]string, key string, fallback ...string) string {
 }
 
 // NewContext is a helper for constructing a context object.
-func NewContext(environ []string, labels []string, typeName string) *Context {
-	env := makeEnv(environ)
+func NewContext(environ []string, issue *github.Issue, typeName string) *Context {
+	var (
+		env    = makeEnv(environ)
+		labels = onlyLabelNames(issue.Labels)
+	)
+
 	return &Context{
 		Build: map[string]string{
 			"CI":       get(env, "CIRCLECI"),
@@ -111,6 +121,13 @@ func NewContext(environ []string, labels []string, typeName string) *Context {
 		Labels: labels,
 		Meta: map[string]string{
 			"Type": typeName,
+		},
+		Pull: map[string]string{
+			"Author": issue.GetUser().GetLogin(),
+			"Body":   issue.GetBody(),
+			"Number": strconv.Itoa(issue.GetNumber()),
+			"Title":  issue.GetTitle(),
+			"URL":    issue.GetHTMLURL(),
 		},
 	}
 }
