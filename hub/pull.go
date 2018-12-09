@@ -40,18 +40,18 @@ func SplitPullRequestReference(reference string) (string, string, int, bool) {
 }
 
 // GetIssue fetches information about the current pull request.
-func GetIssue(ctx context.Context, client *github.Client, owner string, repo string, number int) ([]github.Label, error) {
+func GetIssue(ctx context.Context, client *github.Client, owner string, repo string, number int) (*github.Issue, error) {
 	issue, _, err := client.Issues.Get(ctx, owner, repo, number)
 	if err != nil {
 		return nil, err
 	}
 
-	return issue.Labels, nil
+	return issue, nil
 }
 
-// OnlyLabelNames simplifies a list of GitHub labels into a list a strings,
+// onlyLabelNames simplifies a list of GitHub labels into a list a strings,
 // which is then sorted alphabetically.
-func OnlyLabelNames(labels []github.Label) []string {
+func onlyLabelNames(labels []github.Label) []string {
 	list := make([]string, len(labels))
 	for index, label := range labels {
 		list[index] = label.GetName()

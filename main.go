@@ -73,22 +73,22 @@ func mainCmd() error {
 		return nil
 	}
 
-	token, commentExists := os.LookupEnv(githubTokenEnvVar)
-	if !commentExists {
+	token, found := os.LookupEnv(githubTokenEnvVar)
+	if !found {
 		return fmt.Errorf("no GITHUB_TOKEN set in environment")
 	}
 
 	// If no CIRCLE_PULL_REQUEST is set, print an error and return immediately
 	// but do not fail. This environment variable will not be set on non-pr
 	// branches, or if a build is started before a pr is opened.
-	reference, commentExists := os.LookupEnv(pullRequestLinkEnvVar)
-	if !commentExists {
+	reference, found := os.LookupEnv(pullRequestLinkEnvVar)
+	if !found {
 		fmt.Fprintln(os.Stderr, "hub-comment: no CIRCLE_PULL_REQUEST set in environment")
 		return nil
 	}
 
-	owner, repo, number, commentExists := hub.SplitPullRequestReference(reference)
-	if !commentExists {
+	owner, repo, number, found := hub.SplitPullRequestReference(reference)
+	if !found {
 		return fmt.Errorf("malformed pull request link")
 	}
 
@@ -116,14 +116,11 @@ func mainCmd() error {
 		return err
 	}
 
-	// Get a list of all labels for the given PR number.
-	labels, err := hub.GetIssue(ctx, client, owner, repo, number)
+	// Get information about the given PR number.
+	issue, err := hub.GetIssue(ctx, client, owner, repo, number)
 	if err != nil {
 		return err
 	}
-
-	// Simplify labels to a sorted list of strings.
-	labelSet := hub.OnlyLabelNames(labels)
 
 	// Get a list of all comments for the given PR number
 	comments, err := hub.GetComments(ctx, client, owner, repo, number)
@@ -133,10 +130,10 @@ func mainCmd() error {
 
 	// Select the most recent comment that was authored by the current user, if
 	// one exists.
-	commentID, commentExists := hub.FilterComments(comments, self.GetLogin(), *typeFlag)
+	commentID, found := hub.FilterComments(comments, self.GetLogin(), *typeFlag)
 
 	// Build a context object containing the available environment variables.
-	state := hub.NewContext(os.Environ(), labelSet, *typeFlag)
+	state := hub.NewContext(os.Environ(), issue, *typeFlag)
 
 	comment, err := hub.Execute(tpl, state, cf)
 	if err != nil {
@@ -147,7 +144,7 @@ func mainCmd() error {
 	// resulting comment.
 	var url string
 	if !*dryRunFlag {
-		if commentExists {
+		if found {
 			url, err = hub.UpdateComment(ctx, client, owner, repo, commentID, comment)
 		} else {
 			url, err = hub.PostComment(ctx, client, owner, repo, number, comment)
@@ -158,7 +155,7 @@ func mainCmd() error {
 	}
 
 	// Display a report about the comment that was just posted.
-	hub.Report(comment, url, self.GetName(), self.GetLogin(), owner, repo, number, commentExists, *dryRunFlag)
+	hub.Report(comment, url, self.GetName(), self.GetLogin(), owner, repo, number, found, *dryRunFlag)
 
 	return nil
 }
